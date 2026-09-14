@@ -1,0 +1,29 @@
+{
+  "name": "vperms-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "bun run build:core && bun run build:vperms",
+    "build:core": "bun run --cwd packages/core build",
+    "build:vperms": "bun run --cwd packages/vperms build",
+    "test": "bun run test:bun && bun run test:node",
+    "test:bun": "bun test packages/core/tests packages/vperms/tests",
+    "test:node": "node --test packages/vperms/test-node/compat.node.mjs",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/vperms typecheck",
+    "clean": "bun run --cwd packages/core clean && bun run --cwd packages/vperms clean",
+    "example": "bun run examples/basic/index.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

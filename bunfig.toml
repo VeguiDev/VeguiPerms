@@ -1,0 +1,3 @@
+# Node.js compatibility tests live in packages/vperms/test-node and are run
+# with `node --test` (see the root `test:node` script). They are intentionally
+# named without a `.test.` suffix so `bun test` does not pick them up.
