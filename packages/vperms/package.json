@@ -23,6 +23,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@vperms/core": "workspace:*"
+    "@vperms/core": "workspace:*",
+    "zod": "^4.6.5"
   }
 }

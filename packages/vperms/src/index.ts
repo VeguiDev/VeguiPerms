@@ -1,18 +1,24 @@
-import { matchPermission as matchPermissionCore } from "@vperms/core";
-
-/**
- * Returns `true` when the granted permission implies the requested one.
- *
- * Permissions are dot-separated hierarchical segments. A `*` segment matches
- * any single segment, and a trailing `*` additionally matches any number of
- * remaining segments.
- *
- * @example
- * ```ts
- * matchPermission("workspaces.1.*", "workspaces.1.read"); // true
- * matchPermission("workspaces.1.*", "workspaces.2.read"); // false
- * ```
- */
-export function matchPermission(granted: string, requested: string): boolean {
-  return matchPermissionCore(granted, requested);
-}
+export type {
+  PermissionGrant,
+  ResolvedPermissionGrant,
+  Subject,
+} from "@vperms/core";
+export {
+  SubjectType,
+  VeguiPermsAdapter,
+  VeguiPermsMemoryAdapter,
+} from "@vperms/core";
+export type {
+  ValidatedPermissionGrant,
+  ValidatedSubject,
+} from "./schemas";
+export {
+  PermissionGrantSchema,
+  PermissionSchema,
+  SubjectIdSchema,
+  SubjectSchema,
+  SubjectTypeSchema,
+  WorkspaceIdSchema,
+} from "./schemas";
+export type { VeguiPermsServiceOptions } from "./service";
+export { VeguiPermsService } from "./service";

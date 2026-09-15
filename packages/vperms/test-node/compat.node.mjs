@@ -1,16 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { matchPermission } from "vperms";
+import {
+  SubjectType,
+  VeguiPermsMemoryAdapter,
+  VeguiPermsService,
+} from "vperms";
 
-test("matchPermission works under Node.js", () => {
-  assert.equal(matchPermission("workspaces.1.*", "workspaces.1.read"), true);
-  assert.equal(
-    matchPermission("workspaces.1.*", "workspaces.1.members.invite"),
-    true,
-  );
-  assert.equal(matchPermission("workspaces.*.read", "workspaces.7.read"), true);
-  assert.equal(matchPermission("workspaces.create", "workspaces.create"), true);
+test("VeguiPermsService works under Node.js", async () => {
+  const workspace = "workspace";
+  const vperms = new VeguiPermsService({
+    adapter: new VeguiPermsMemoryAdapter(),
+  });
 
-  assert.equal(matchPermission("workspaces.1.*", "workspaces.2.read"), false);
-  assert.equal(matchPermission("workspaces.1.read", "workspaces.1"), false);
+  await vperms.saveSubject(workspace, {
+    id: "user",
+    type: SubjectType.User,
+    parents: ["team"],
+  });
+  await vperms.saveSubject(workspace, {
+    id: "team",
+    type: SubjectType.Group,
+    parents: [],
+  });
+  await vperms.setPermission(workspace, "team", "workspaces.1.*", true);
+
+  assert.equal(await vperms.can(workspace, "user", "workspaces.1.read"), true);
+  assert.equal(await vperms.can(workspace, "user", "workspaces.2.read"), false);
 });
