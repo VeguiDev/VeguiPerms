@@ -16,6 +16,15 @@ export {
   TYPE_DEFAULT_PARENT_LAYER,
 } from "./resolution";
 export {
+  BUILTIN_PERMISSION_LAYER,
+  canResolved,
+  type ResolvedPermission,
+  type ResolvedSubject,
+  resolveSubjectPermissions,
+  SELF_PERMISSIONS_PERMISSION,
+  subjectPermissionsPermission,
+} from "./resolved";
+export {
   compareGrants,
   depthOf,
   layerOf,
