@@ -149,6 +149,65 @@ describe("vpermsMiddleware", () => {
     expect(anonymous?.type).toBe(SubjectType.Anon);
   });
 
+  test("exposes req.subject and req.kind", async () => {
+    const { adapter } = await seed();
+    const app = express();
+    app.use(vpermsMiddleware({ adapter, workspace: WS, resolver: () => USER }));
+    app.get("/context", (req, res) => {
+      res.json({ subject: req.subject ?? null, kind: req.kind ?? null });
+    });
+
+    await withApp(app, async (url) => {
+      expect(await (await fetch(`${url}/context`)).json()).toEqual({
+        subject: { id: USER, type: SubjectType.User, parents: [] },
+        kind: SubjectType.User,
+      });
+    });
+  });
+
+  test("exposes the anonymous subject and kind", async () => {
+    const { adapter } = await seed();
+    const app = express();
+    app.use(vpermsMiddleware({ adapter, workspace: WS, resolver: () => null }));
+    app.get("/context", (req, res) => {
+      res.json({ subject: req.subject ?? null, kind: req.kind ?? null });
+    });
+
+    await withApp(app, async (url) => {
+      expect(await (await fetch(`${url}/context`)).json()).toEqual({
+        subject: {
+          id: ANONYMOUS_SUBJECT_ID,
+          type: SubjectType.Anon,
+          parents: [],
+        },
+        kind: SubjectType.Anon,
+      });
+    });
+  });
+
+  test("leaves req.subject undefined when the record is missing", async () => {
+    const { adapter } = await seed();
+    const app = express();
+    app.use(
+      vpermsMiddleware({ adapter, workspace: WS, resolver: () => "ghost" }),
+    );
+    app.get("/context", async (req, res) => {
+      res.json({
+        subject: req.subject ?? null,
+        kind: req.kind ?? null,
+        can: await req.ability.can("posts.read"),
+      });
+    });
+
+    await withApp(app, async (url) => {
+      expect(await (await fetch(`${url}/context`)).json()).toEqual({
+        subject: null,
+        kind: null,
+        can: false,
+      });
+    });
+  });
+
   test("exposes req.ability after the middleware", async () => {
     const { adapter } = await seed();
     const app = abilityApp({ adapter, workspace: WS, resolver: () => USER });
