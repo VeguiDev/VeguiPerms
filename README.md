@@ -34,9 +34,13 @@ await vperms.can("workspace", "user", "workspaces.2.read"); // false
 ## Repository layout
 
 ```txt
-packages/core      Pure TypeScript permission engine (@vperms/core)
-packages/vperms    Public API and service (`vperms` package)
-examples/basic     Minimal usage example
+packages/core              Pure TypeScript permission engine (@vperms/core)
+packages/vperms            Public API and service (`vperms` package)
+packages/sql-adapter       Dialect-agnostic SQL base adapter (@vperms/sql-adapter)
+packages/drizzle-adapter   SQLite/MySQL/Postgres adapters via Drizzle (@vperms/drizzle-adapter)
+packages/mongodb-adapter   MongoDB adapter (@vperms/mongodb-adapter)
+packages/adapter-contract  Private shared contract test suite
+examples/basic             Minimal usage example
 ```
 
 ## Requirements
@@ -55,11 +59,14 @@ bun run test    # Bun tests + Node.js compatibility tests
 Other commands:
 
 ```bash
-bun run lint        # Biome
-bun run format      # Biome --write
-bun run typecheck   # tsc (strict)
-bun run clean       # remove build outputs
-bun run example     # run examples/basic with Bun
+bun run lint             # Biome
+bun run format           # Biome --write
+bun run typecheck        # tsc (strict)
+bun run clean            # remove build outputs
+bun run example          # run examples/basic with Bun
+bun run db:generate      # regenerate Drizzle migrations for all SQL dialects
+docker compose up -d     # start MySQL, Postgres and MongoDB for integration tests
+bun run test:integration # adapter tests against the real databases
 ```
 
 ## Permission semantics
@@ -105,10 +112,100 @@ over more distant ancestors, and the result does not depend on the order of the
 
 Public inputs are validated with [Zod](https://zod.dev).
 
+## Adapters
+
+An adapter only persists subjects and grants. Every adapter receives an
+**already-created client or Drizzle instance** (dependency injection) and
+applies its schema through an **explicit `migrate()`** call — nothing touches
+the database implicitly.
+
+### SQLite, MySQL and Postgres
+
+`@vperms/drizzle-adapter` exposes one entry point per dialect. The dialect comes
+from the import you use:
+
+```ts
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import {
+  sqliteSchema,
+  VeguiPermsSqliteAdapter,
+} from "@vperms/drizzle-adapter/sqlite";
+
+const adapter = new VeguiPermsSqliteAdapter({
+  db: drizzle(new Database(":memory:"), { schema: sqliteSchema }),
+});
+await adapter.migrate();
+
+const vperms = new VeguiPermsService({ adapter });
+```
+
+The MySQL and Postgres entry points are identical in shape:
+
+```ts
+import { drizzle } from "drizzle-orm/mysql2";
+import {
+  mysqlSchema,
+  VeguiPermsMysqlAdapter,
+} from "@vperms/drizzle-adapter/mysql";
+
+const adapter = new VeguiPermsMysqlAdapter({
+  db: drizzle(pool, { schema: mysqlSchema, mode: "default" }),
+});
+await adapter.migrate();
+```
+
+```ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import {
+  postgresSchema,
+  VeguiPermsPostgresAdapter,
+} from "@vperms/drizzle-adapter/postgres";
+
+const adapter = new VeguiPermsPostgresAdapter({
+  db: drizzle(pool, { schema: postgresSchema }),
+});
+await adapter.migrate();
+```
+
+Each dialect ships its own migrations and resolves them automatically; pass
+`migrationsFolder` to override the location. All dialects share
+`@vperms/sql-adapter`, which maps rows to the public types.
+
+### MongoDB
+
+```ts
+import { MongoClient } from "mongodb";
+import { VeguiPermsMongoDBAdapter } from "@vperms/mongodb-adapter";
+
+const adapter = new VeguiPermsMongoDBAdapter({
+  db: new MongoClient(url).db("vperms"),
+});
+await adapter.migrate();
+```
+
+`migrate()` creates the `vperms_subjects` and `vperms_grants` collections and
+their unique indexes idempotently.
+
+### Testing adapters
+
+`@vperms/adapter-contract` (private) holds the shared contract suite that every
+adapter runs against, so behavior stays identical across backends:
+
+```bash
+bun run test             # unit tests, incl. SQLite and in-memory MongoDB
+docker compose up -d     # MySQL, Postgres, MongoDB
+bun run test:integration # same contract against the real databases
+```
+
+Integration tests are skipped unless `RUN_INTEGRATION=1` is set (which the
+`test:integration` script does).
+
 ## Roadmap
 
-Database adapters, caching, and advanced policy conditions are planned. The
-current milestone is the in-memory reference adapter and the service pipeline.
+Caching and advanced policy conditions are planned. The current milestone is
+the in-memory reference adapter, the service pipeline, and the first database
+adapters.
 
 ## License
 
