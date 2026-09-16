@@ -1,0 +1,57 @@
+{
+  "name": "@vperms/drizzle-adapter",
+  "version": "0.0.0",
+  "description": "Drizzle ORM adapter for VeguiPerms (SQLite, MySQL and Postgres).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/sqlite/index.d.ts",
+      "import": "./dist/sqlite/index.js"
+    },
+    "./mysql": {
+      "types": "./dist/mysql/index.d.ts",
+      "import": "./dist/mysql/index.js"
+    },
+    "./postgres": {
+      "types": "./dist/postgres/index.d.ts",
+      "import": "./dist/postgres/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "bun run build:js && bun run build:dts",
+    "build:js": "bun build src/index.ts src/sqlite/index.ts src/mysql/index.ts src/postgres/index.ts --outdir dist --format esm --target node --packages external",
+    "build:dts": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "db:generate": "bun run db:generate:sqlite && bun run db:generate:mysql && bun run db:generate:postgres",
+    "db:generate:sqlite": "drizzle-kit generate --config=drizzle.sqlite.config.ts",
+    "db:generate:mysql": "drizzle-kit generate --config=drizzle.mysql.config.ts",
+    "db:generate:postgres": "drizzle-kit generate --config=drizzle.postgres.config.ts"
+  },
+  "dependencies": {
+    "@vperms/core": "workspace:*",
+    "@vperms/sql-adapter": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/pg": "^8.23.1",
+    "@vperms/adapter-contract": "workspace:*",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-kit": "^0.31.10",
+    "mysql2": "^3.24.4",
+    "pg": "^8.23.0",
+    "vperms": "workspace:*"
+  }
+}
