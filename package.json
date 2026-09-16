@@ -9,16 +9,21 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run build:core && bun run build:vperms",
+    "build": "bun run build:core && bun run build:sql-adapter && bun run build:vperms && bun run build:drizzle-adapter && bun run build:mongodb-adapter",
     "build:core": "bun run --cwd packages/core build",
     "build:vperms": "bun run --cwd packages/vperms build",
+    "build:sql-adapter": "bun run --cwd packages/sql-adapter build",
+    "build:drizzle-adapter": "bun run --cwd packages/drizzle-adapter build",
+    "build:mongodb-adapter": "bun run --cwd packages/mongodb-adapter build",
     "test": "bun run test:bun && bun run test:node",
-    "test:bun": "bun test packages/core/tests packages/vperms/tests",
+    "test:bun": "bun test packages/core/tests packages/vperms/tests packages/sql-adapter/tests packages/adapter-contract/tests packages/drizzle-adapter/tests packages/mongodb-adapter/tests",
     "test:node": "node --test packages/vperms/test-node/compat.node.mjs",
+    "test:integration": "RUN_INTEGRATION=1 bun test packages/drizzle-adapter/test-integration packages/mongodb-adapter/test-integration",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/vperms typecheck",
-    "clean": "bun run --cwd packages/core clean && bun run --cwd packages/vperms clean",
+    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/vperms typecheck && bun run --cwd packages/sql-adapter typecheck && bun run --cwd packages/adapter-contract typecheck && bun run --cwd packages/drizzle-adapter typecheck && bun run --cwd packages/mongodb-adapter typecheck",
+    "clean": "bun run --cwd packages/core clean && bun run --cwd packages/vperms clean && bun run --cwd packages/sql-adapter clean && bun run --cwd packages/drizzle-adapter clean && bun run --cwd packages/mongodb-adapter clean",
+    "db:generate": "bun run --cwd packages/drizzle-adapter db:generate",
     "example": "bun run examples/basic/index.ts"
   },
   "devDependencies": {
