@@ -112,6 +112,69 @@ over more distant ancestors, and the result does not depend on the order of the
 
 Public inputs are validated with [Zod](https://zod.dev).
 
+## Principals
+
+Every method that identifies a subject (`can`, `setPermission`,
+`unsetPermission`, `deleteSubject`) accepts either a raw subject id or a
+`Principal`:
+
+```ts
+import type { Principal } from "vperms";
+
+class UserPrincipal implements Principal {
+  constructor(private readonly id: string) {}
+
+  getSubjectId(): string {
+    return this.id;
+  }
+}
+
+await vperms.can("workspace", new UserPrincipal("user"), "posts.read");
+```
+
+The service normalizes the value with `getSubjectId()` before validating it, so
+adapters only ever see subject ids.
+
+## Virtual parents
+
+A service can apply virtual parents to every subject it evaluates:
+
+```ts
+const vperms = new VeguiPermsService({
+  adapter,
+  defaultParents: {
+    global: ["everyone"],
+    byType: { user: ["users"], service: ["services"] },
+  },
+});
+```
+
+Effective parents are resolved in layers, highest priority first:
+
+1. the explicit `parents` stored on the subject,
+2. `defaultParents.byType` for that subject's type,
+3. `defaultParents.global`.
+
+The next layer is only consulted when the previous one produced no matching
+permission. A parent reached through a default contributes its own explicit
+parents (same layer) and its own defaults, keeping the worse of the two layers.
+
+Any parent id can be opted out per subject with a `!` prefix:
+
+```ts
+await vperms.saveSubject("workspace", {
+  id: "user",
+  type: SubjectType.User,
+  parents: ["!everyone"],
+});
+```
+
+Negation only opts out of virtual parents. It never removes an explicit parent
+with the same id, removes the id from both virtual sources at once, and — when
+declared on the evaluated subject — is propagated through the whole walk so the
+id is never reached through a virtual source. An explicit `parents` entry can
+always reintroduce it. Default parents cannot themselves be negation directives.
+
 ## Adapters
 
 An adapter only persists subjects and grants. Every adapter receives an
