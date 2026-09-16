@@ -37,6 +37,7 @@ await vperms.can("workspace", "user", "workspaces.2.read"); // false
 packages/core              Pure TypeScript permission engine (@vperms/core)
 packages/vperms            Public API and service (`vperms` package)
 packages/express           Express middleware integration (@vperms/express)
+packages/nest              NestJS integration (@vperms/nest)
 packages/sql-adapter       Dialect-agnostic SQL base adapter (@vperms/sql-adapter)
 packages/drizzle-adapter   SQLite/MySQL/Postgres adapters via Drizzle (@vperms/drizzle-adapter)
 packages/mongodb-adapter   MongoDB adapter (@vperms/mongodb-adapter)
@@ -175,6 +176,102 @@ with the same id, removes the id from both virtual sources at once, and — when
 declared on the evaluated subject — is propagated through the whole walk so the
 id is never reached through a virtual source. An explicit `parents` entry can
 always reintroduce it. Default parents cannot themselves be negation directives.
+
+## Resolved permissions
+
+`resolvePermissions(workspaceId, subject)` resolves the whole effective
+permission set — direct grants, explicit, nested, type and global default
+parents, `!parent` negation, allows and denies — into a JSON-safe DTO:
+
+```ts
+const resolved = await vperms.resolvePermissions("workspace", "user");
+// {
+//   id: "user",
+//   type: "user",
+//   parents: ["developers"],
+//   permissions: [{ permission: "workspaces.1.read", value: true, weight: 100 }],
+// }
+```
+
+`weight` encodes the final precedence and is computed, never persisted. It folds
+together `source` (direct > explicit parent > type default > global default),
+`depth` (closer parent > more distant ancestor) and `specificity` (more specific
+permission > broader wildcard). Higher weight wins, and the order is
+deterministic regardless of parent order.
+
+`canResolved(permissions, permission)` re-evaluates that same precedence using
+only the DTO, so a client needs nothing more than a pattern matcher and the
+weights. It is guaranteed to agree with the server-side `can()`.
+
+Subjects may always read their own resolved permissions through the built-in
+`vperms.subject.me.permissions` grant (included in the DTO and overridable by an
+explicit deny). Reading another subject requires
+`vperms.subject.<subjectId>.permissions`, and normal wildcards such as
+`vperms.subject.*.permissions` apply.
+
+## Framework integrations
+
+Both integrations hydrate a request-scoped `ability` (plus `subject` and `kind`)
+and can expose the resolved-permission DTO. The export route is disabled unless
+`permissionsExport` is configured, and it always authorizes with the request's
+existing ability before returning anything.
+
+### Express
+
+```ts
+import { hasAnyPermission, hasPermission, vpermsMiddleware } from "@vperms/express";
+
+app.use(
+  vpermsMiddleware({
+    adapter,
+    workspace: "workspace",
+    resolver: (req) => req.user?.id ?? null,
+    permissionsExport: { path: "/subject/:subjectId" },
+  }),
+);
+
+app.get("/posts", hasPermission("posts.read"), postsHandler);
+app.get("/admin", hasAnyPermission("admin.*", "staff"), adminHandler);
+```
+
+`resolver` may return a subject id, a `Principal` or `null` (the anonymous
+subject). `hasPermission` requires every permission and `hasAnyPermission` at
+least one, both short-circuiting.
+
+### NestJS
+
+```ts
+@Module({
+  imports: [
+    VPermsModule.forRoot({
+      adapter,
+      workspace: "workspace",
+      resolver: (req) => req.user?.id ?? null,
+      permissionsExport: { path: "/subject/:subjectId" },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+`forRoot` registers a global guard that hydrates `req.ability`, `req.subject` and
+`req.kind` once per request but never denies a route on its own. `@Permission()`
+requires every listed permission, `@AnyPermission()` at least one, and both
+evaluate only inside the guard:
+
+```ts
+@Get("me")
+@Permission("account.active", (req) => `workspaces.${req.params.id}.read`)
+getMe(
+  @Subject() subject: Subject,
+  @Kind() kind: SubjectType,
+  @Ability() ability: Ability,
+) {}
+```
+
+`@Ability()`, `@Subject()` and `@Kind()` only read already-hydrated state.
+Extend `AbilityGuard` for custom guards that reuse the same ability without
+resolving the principal again.
 
 ## Adapters
 

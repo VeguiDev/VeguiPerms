@@ -19,8 +19,23 @@
     }
   },
   "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
     "formatter": {
       "quoteStyle": "double"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/nest/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noStaticOnlyClass": "off"
+          }
+        }
+      }
+    }
+  ]
 }
