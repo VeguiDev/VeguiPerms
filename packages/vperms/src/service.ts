@@ -1,11 +1,15 @@
 import {
+  type DefaultParents,
   matchPermission,
   type PermissionGrant,
+  type Principal,
   resolveInheritedPermissions,
   type Subject,
+  type SubjectId,
   type VeguiPermsAdapter,
 } from "@vperms/core";
 import {
+  DefaultParentsSchema,
   PermissionGrantSchema,
   PermissionSchema,
   SubjectIdSchema,
@@ -15,6 +19,17 @@ import {
 
 export interface VeguiPermsServiceOptions {
   adapter: VeguiPermsAdapter;
+
+  /**
+   * Virtual parents applied to every evaluated subject, on top of its
+   * explicit `parents`. Negating a virtual parent is done per subject with
+   * the `!parentId` syntax in `Subject.parents`.
+   */
+  defaultParents?: DefaultParents;
+}
+
+function resolveSubjectId(subject: SubjectId | Principal): SubjectId {
+  return typeof subject === "string" ? subject : subject.getSubjectId();
 }
 
 /**
@@ -22,31 +37,39 @@ export interface VeguiPermsServiceOptions {
  *
  * The service owns validation, permission resolution, inheritance, cycle
  * protection and evaluation. The adapter only persists data.
+ *
+ * Methods that identify a subject accept either a raw `SubjectId` or a
+ * `Principal`, and normalize the input internally.
  */
 export class VeguiPermsService {
   private readonly adapter: VeguiPermsAdapter;
+  private readonly defaultParents?: DefaultParents;
 
-  constructor({ adapter }: VeguiPermsServiceOptions) {
+  constructor({ adapter, defaultParents }: VeguiPermsServiceOptions) {
     this.adapter = adapter;
+    this.defaultParents = defaultParents
+      ? DefaultParentsSchema.parse(defaultParents)
+      : undefined;
   }
 
   /**
-   * Whether `subjectId` may perform `permission` in `workspaceId`.
+   * Whether the subject may perform `permission` in `workspaceId`.
    *
-   * Direct grants are evaluated first and short-circuit the result. Parent
-   * (inherited) permissions are only resolved when no direct grant matches.
+   * Direct grants are evaluated first and short-circuit the result. Otherwise
+   * explicit parents are resolved, then type defaults, then global defaults:
+   * the next layer is only consulted when the previous one has no match.
    */
   async can(
     workspaceId: string,
-    subjectId: string,
+    subject: SubjectId | Principal,
     permission: string,
   ): Promise<boolean> {
     const ws = WorkspaceIdSchema.parse(workspaceId);
-    const id = SubjectIdSchema.parse(subjectId);
+    const id = SubjectIdSchema.parse(resolveSubjectId(subject));
     const perm = PermissionSchema.parse(permission);
 
-    const subject = await this.adapter.findSubject(ws, id);
-    if (!subject) {
+    const record = await this.adapter.findSubject(ws, id);
+    if (!record) {
       return false;
     }
 
@@ -59,7 +82,8 @@ export class VeguiPermsService {
     const inheritedGrants = await resolveInheritedPermissions(
       this.adapter,
       ws,
-      subject,
+      record,
+      { defaultParents: this.defaultParents },
     );
     const inheritedResult = matchPermission(inheritedGrants, perm);
 
@@ -74,21 +98,21 @@ export class VeguiPermsService {
 
   async deleteSubject(
     workspaceId: string,
-    subjectId: string,
+    subject: SubjectId | Principal,
   ): Promise<boolean> {
     const ws = WorkspaceIdSchema.parse(workspaceId);
-    const id = SubjectIdSchema.parse(subjectId);
+    const id = SubjectIdSchema.parse(resolveSubjectId(subject));
     return this.adapter.deleteSubject(ws, id);
   }
 
   async setPermission(
     workspaceId: string,
-    subjectId: string,
+    subject: SubjectId | Principal,
     permission: string,
     value: boolean,
   ): Promise<PermissionGrant> {
     const ws = WorkspaceIdSchema.parse(workspaceId);
-    const id = SubjectIdSchema.parse(subjectId);
+    const id = SubjectIdSchema.parse(resolveSubjectId(subject));
     const perm = PermissionSchema.parse(permission);
     const grant = PermissionGrantSchema.parse({
       workspaceId: ws,
@@ -102,11 +126,11 @@ export class VeguiPermsService {
 
   async unsetPermission(
     workspaceId: string,
-    subjectId: string,
+    subject: SubjectId | Principal,
     permission: string,
   ): Promise<boolean> {
     const ws = WorkspaceIdSchema.parse(workspaceId);
-    const id = SubjectIdSchema.parse(subjectId);
+    const id = SubjectIdSchema.parse(resolveSubjectId(subject));
     const perm = PermissionSchema.parse(permission);
     return this.adapter.ungrantPermission(ws, id, perm);
   }

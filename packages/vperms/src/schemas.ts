@@ -1,4 +1,4 @@
-import { SubjectType } from "@vperms/core";
+import { SubjectType, VIRTUAL_PARENT_NEGATION } from "@vperms/core";
 import { z } from "zod";
 
 export const WorkspaceIdSchema = z.string().min(1);
@@ -25,6 +25,23 @@ export const SubjectSchema = z.object({
   parents: z.array(SubjectIdSchema),
 });
 
+/**
+ * A virtual parent ID. Unlike {@link SubjectSchema}'s `parents`, default
+ * parents cannot be negation directives: opting out happens on the subject,
+ * never in the configuration.
+ */
+export const DefaultParentIdSchema = SubjectIdSchema.refine(
+  (id) => !id.startsWith(VIRTUAL_PARENT_NEGATION),
+  "a default parent cannot be a negation directive",
+);
+
+export const DefaultParentsSchema = z.object({
+  global: z.array(DefaultParentIdSchema).optional(),
+  byType: z
+    .partialRecord(SubjectTypeSchema, z.array(DefaultParentIdSchema))
+    .optional(),
+});
+
 export const PermissionGrantSchema = z.object({
   permission: PermissionSchema,
   value: z.boolean(),
@@ -34,3 +51,4 @@ export const PermissionGrantSchema = z.object({
 
 export type ValidatedSubject = z.infer<typeof SubjectSchema>;
 export type ValidatedPermissionGrant = z.infer<typeof PermissionGrantSchema>;
+export type ValidatedDefaultParents = z.infer<typeof DefaultParentsSchema>;

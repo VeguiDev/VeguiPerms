@@ -1,7 +1,10 @@
 export type {
+  DefaultParents,
   PermissionGrant,
+  Principal,
   ResolvedPermissionGrant,
   Subject,
+  SubjectId,
 } from "@vperms/core";
 export {
   SubjectType,
@@ -9,10 +12,13 @@ export {
   VeguiPermsMemoryAdapter,
 } from "@vperms/core";
 export type {
+  ValidatedDefaultParents,
   ValidatedPermissionGrant,
   ValidatedSubject,
 } from "./schemas";
 export {
+  DefaultParentIdSchema,
+  DefaultParentsSchema,
   PermissionGrantSchema,
   PermissionSchema,
   SubjectIdSchema,
