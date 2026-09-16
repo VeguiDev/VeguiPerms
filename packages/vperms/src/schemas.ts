@@ -49,6 +49,23 @@ export const PermissionGrantSchema = z.object({
   workspaceId: WorkspaceIdSchema,
 });
 
+export const ResolvedPermissionSchema = z.object({
+  permission: PermissionSchema,
+  value: z.boolean(),
+  weight: z.number(),
+});
+
+export const ResolvedSubjectSchema = z.object({
+  id: SubjectIdSchema,
+  type: SubjectTypeSchema,
+  parents: z.array(SubjectIdSchema),
+  permissions: z.array(ResolvedPermissionSchema),
+});
+
 export type ValidatedSubject = z.infer<typeof SubjectSchema>;
 export type ValidatedPermissionGrant = z.infer<typeof PermissionGrantSchema>;
 export type ValidatedDefaultParents = z.infer<typeof DefaultParentsSchema>;
+export type ValidatedResolvedPermission = z.infer<
+  typeof ResolvedPermissionSchema
+>;
+export type ValidatedResolvedSubject = z.infer<typeof ResolvedSubjectSchema>;

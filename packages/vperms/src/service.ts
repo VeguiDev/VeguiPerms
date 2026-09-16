@@ -1,17 +1,23 @@
 import {
   type DefaultParents,
+  matchesPattern,
   matchPermission,
   type PermissionGrant,
   type Principal,
+  type ResolvedSubject,
   resolveInheritedPermissions,
+  resolveSubjectPermissions,
+  SELF_PERMISSIONS_PERMISSION,
   type Subject,
   type SubjectId,
   type VeguiPermsAdapter,
 } from "@vperms/core";
+import { SubjectNotFoundError } from "./errors";
 import {
   DefaultParentsSchema,
   PermissionGrantSchema,
   PermissionSchema,
+  ResolvedSubjectSchema,
   SubjectIdSchema,
   SubjectSchema,
   WorkspaceIdSchema,
@@ -86,8 +92,44 @@ export class VeguiPermsService {
       { defaultParents: this.defaultParents },
     );
     const inheritedResult = matchPermission(inheritedGrants, perm);
+    if (inheritedResult !== null) {
+      return inheritedResult;
+    }
 
-    return inheritedResult ?? false;
+    return matchesPattern(SELF_PERMISSIONS_PERMISSION, perm);
+  }
+
+  /**
+   * Resolves every effective permission for `subject`, including built-in
+   * nodes, into a JSON-safe {@link ResolvedSubject} snapshot.
+   *
+   * Throws {@link SubjectNotFoundError} when the adapter has no record.
+   */
+  async resolvePermissions(
+    workspaceId: string,
+    subject: SubjectId | Principal,
+  ): Promise<ResolvedSubject> {
+    const ws = WorkspaceIdSchema.parse(workspaceId);
+    const id = SubjectIdSchema.parse(resolveSubjectId(subject));
+
+    const record = await this.adapter.findSubject(ws, id);
+    if (!record) {
+      throw new SubjectNotFoundError(id);
+    }
+
+    const permissions = await resolveSubjectPermissions(
+      this.adapter,
+      ws,
+      record,
+      { defaultParents: this.defaultParents },
+    );
+
+    return ResolvedSubjectSchema.parse({
+      id: record.id,
+      type: record.type,
+      parents: record.parents,
+      permissions,
+    });
   }
 
   async saveSubject(workspaceId: string, subject: Subject): Promise<Subject> {
