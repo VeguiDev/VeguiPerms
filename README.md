@@ -36,6 +36,7 @@ await vperms.can("workspace", "user", "workspaces.2.read"); // false
 ```txt
 packages/core              Pure TypeScript permission engine (@vperms/core)
 packages/vperms            Public API and service (`vperms` package)
+packages/express           Express middleware integration (@vperms/express)
 packages/sql-adapter       Dialect-agnostic SQL base adapter (@vperms/sql-adapter)
 packages/drizzle-adapter   SQLite/MySQL/Postgres adapters via Drizzle (@vperms/drizzle-adapter)
 packages/mongodb-adapter   MongoDB adapter (@vperms/mongodb-adapter)
