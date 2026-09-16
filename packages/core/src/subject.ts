@@ -4,6 +4,7 @@ export enum SubjectType {
   User = "user",
   Service = "service",
   Group = "group",
+  Anon = "anon",
 }
 
 export interface Subject {
