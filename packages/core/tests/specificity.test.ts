@@ -7,6 +7,7 @@ function grant(
   value = true,
   subjectId = "subject",
   depth?: number,
+  layer = 0,
 ): PermissionGrant | ResolvedPermissionGrant {
   const base: PermissionGrant = {
     workspaceId: "workspace",
@@ -14,7 +15,7 @@ function grant(
     permission,
     value,
   };
-  return depth === undefined ? base : { ...base, depth };
+  return depth === undefined ? base : { ...base, depth, layer };
 }
 
 describe("permissionSpecificity", () => {
@@ -49,6 +50,12 @@ describe("compareGrants", () => {
     const close = grant("workspaces.1.read", true, "a", 1);
     const distant = grant("workspaces.1.read", true, "b", 3);
     expect(compareGrants(close, distant)).toBeLessThan(0);
+  });
+
+  test("a closer parent layer wins over depth and specificity", () => {
+    const explicit = grant("workspaces.*", true, "a", 2, 0);
+    const defaulted = grant("workspaces.1.read", true, "b", 1, 1);
+    expect(compareGrants(explicit, defaulted)).toBeLessThan(0);
   });
 
   test("specificity wins within the same depth", () => {

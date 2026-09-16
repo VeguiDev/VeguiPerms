@@ -39,6 +39,12 @@ export function depthOf(
   return isResolved(grant) ? grant.depth : 0;
 }
 
+export function layerOf(
+  grant: PermissionGrant | ResolvedPermissionGrant,
+): number {
+  return isResolved(grant) ? grant.layer : 0;
+}
+
 function compareStrings(a: string, b: string): number {
   if (a < b) {
     return -1;
@@ -52,15 +58,21 @@ function compareStrings(a: string, b: string): number {
 /**
  * Deterministic ordering for permission grants, highest priority first.
  *
- * Priority is: closer inheritance depth, then more specific pattern, then more
- * exact segments, then explicit deny, and finally a stable tiebreak by pattern
- * and subject id. Because every tiebreak is content-based, the order is
- * independent of insertion order (for example, the order of `parents`).
+ * Priority is: closer parent layer, then closer inheritance depth, then more
+ * specific pattern, then more exact segments, then explicit deny, and finally
+ * a stable tiebreak by pattern and subject id. Because every tiebreak is
+ * content-based, the order is independent of insertion order (for example, the
+ * order of `parents`).
  */
 export function compareGrants(
   a: PermissionGrant | ResolvedPermissionGrant,
   b: PermissionGrant | ResolvedPermissionGrant,
 ): number {
+  const layer = layerOf(a) - layerOf(b);
+  if (layer !== 0) {
+    return layer;
+  }
+
   const depth = depthOf(a) - depthOf(b);
   if (depth !== 0) {
     return depth;
