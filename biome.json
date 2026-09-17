@@ -36,6 +36,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/nest/src/vperms.guard.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
     }
   ]
 }

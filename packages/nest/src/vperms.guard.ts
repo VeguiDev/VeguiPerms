@@ -1,6 +1,6 @@
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import type { RequestContext, VeguiPermsService } from "vperms";
 import { resolveRequestContext } from "vperms";
