@@ -1,0 +1,50 @@
+{
+  "name": "@vperms/react",
+  "version": "0.0.0",
+  "description": "React and React Server Component integration for VeguiPerms.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/client/index.js",
+  "types": "./dist/client/index.d.ts",
+  "exports": {
+    ".": {
+      "react-server": {
+        "types": "./dist/server/index.d.ts",
+        "import": "./dist/server/index.js"
+      },
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun run test:client && bun run test:server",
+    "test:client": "bun test tests/client.test.tsx tests/universal.test.tsx",
+    "test:server": "bun test --conditions=react-server tests/server.test.tsx tests/universal-server.test.tsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@vperms/client": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
