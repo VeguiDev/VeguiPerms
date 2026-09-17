@@ -36,6 +36,8 @@ await vperms.can("workspace", "user", "workspaces.2.read"); // false
 ```txt
 packages/core              Pure TypeScript permission engine (@vperms/core)
 packages/vperms            Public API and service (`vperms` package)
+packages/client            Framework-independent resolved-permission client (@vperms/client)
+packages/react             React and React Server Component integration (@vperms/react)
 packages/express           Express middleware integration (@vperms/express)
 packages/nest              NestJS integration (@vperms/nest)
 packages/sql-adapter       Dialect-agnostic SQL base adapter (@vperms/sql-adapter)
@@ -272,6 +274,127 @@ getMe(
 `@Ability()`, `@Subject()` and `@Kind()` only read already-hydrated state.
 Extend `AbilityGuard` for custom guards that reuse the same ability without
 resolving the principal again.
+
+## Client and React
+
+Resolved subjects are plain JSON, so they can be evaluated anywhere without a
+server, an adapter or any inheritance logic. `@vperms/client` turns the DTO into
+a synchronous `Ability`, and `@vperms/react` exposes that same snapshot in
+Server and Client Components.
+
+### Vanilla client
+
+```ts
+import { createVPerms } from "@vperms/client";
+
+const vperms = createVPerms("https://api.example.com", {
+  prefix: "/vperms", // default
+  subjectResolver: async () => currentUser,
+  fetchOptions: { credentials: "include" },
+});
+
+const ability = await vperms.getAbility();
+ability.can("workspaces.1.read"); // synchronous, same result as server can()
+```
+
+`origin` may be absolute (`https://api.example.com`), relative (`/api`) or empty
+(`""`). With no explicit subject the client requests
+`{origin}{prefix}/subject/me`; `getResolvedSubject(subjectId)` and
+`getAbility(subjectId)` request `{origin}{prefix}/subject/:subjectId`. A
+`subjectResolver` may return a `SubjectId`, a `Principal` or `null` (anonymous).
+Responses are validated with `ResolvedSubjectSchema`; plug in `fetch` for SSR,
+cookie forwarding or tests.
+
+```ts
+import { createAbility, fetchResolvedSubject } from "@vperms/client";
+
+const ability = createAbility(resolvedSubject);
+ability.subject; // ResolvedSubject snapshot (immutable)
+ability.permissions; // ResolvedPermission[]
+ability.can("posts.read");
+
+const me = await fetchResolvedSubject("/api/vperms/subject/me");
+```
+
+`can()` is synchronous and only evaluates `ResolvedPermission[]` with the same
+matcher and weight precedence as `canResolved()`. It knows nothing about parents,
+default parents, `!parent`, inheritance depth or adapters.
+
+### React
+
+`@vperms/react` re-exports the client factory plus React bindings. Importing
+`@vperms/react` resolves to the server entry under the `react-server` condition
+and to the client entry otherwise, so the same import works in both environments.
+
+```ts
+// permissions.ts
+import { createVPerms } from "@vperms/react";
+
+export const vperms = createVPerms("https://api.example.com", {
+  subjectResolver: async () => currentUser,
+});
+```
+
+Server Components use the request-scoped, `React.cache`-backed helpers:
+
+```tsx
+import { vperms } from "@/permissions";
+
+export default async function Page() {
+  const ability = await vperms.getAbility();
+
+  if (!ability.can("dashboard.read")) {
+    return null;
+  }
+
+  return (
+    <vperms.Provider>
+      <vperms.Ability permission="admin.read" fallback={<NoAccess />}>
+        <Dashboard />
+      </vperms.Ability>
+    </vperms.Provider>
+  );
+}
+```
+
+Client Components read the hydrated snapshot through context:
+
+```tsx
+"use client";
+
+import { vperms } from "@/permissions";
+
+function CreateButton() {
+  const ability = vperms.useAbility();
+
+  return ability.can("projects.create") ? <button>Create</button> : null;
+}
+
+// or, equivalently:
+<vperms.Ability permission="projects.create">
+  <button>Create</button>
+</vperms.Ability>;
+```
+
+`<Ability permission>` and `<Ability permissions={[...]}>` require every
+permission by default; add `any` to require at least one. Both short-circuit, and
+`fallback` renders when access is denied. `ServerAbility` and `ClientAbility` are
+also exported explicitly for advanced use.
+
+`vperms.Provider` is a Server Component that resolves the subject once and hands
+the JSON-safe snapshot to the client `AbilityProvider`; the class instance never
+crosses the RSC boundary. `@vperms/react` also exports the lower-level
+`AbilityProvider` (which takes a `ResolvedSubject`) and `useAbility`, which
+throws a clear error outside a provider. The server request cache defaults to
+`React.cache` and can be overridden with the `cache` option for non-React server
+runtimes or tests.
+
+#### Security
+
+Client-side permissions are **for conditional rendering and UX only** — hiding
+unavailable controls or avoiding unnecessary requests. They are **not**
+authoritative authorization, and client state must never be trusted. Every
+sensitive operation must still be authorized on the server with VeguiPerms.
 
 ## Adapters
 
