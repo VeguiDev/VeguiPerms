@@ -3,6 +3,14 @@
   "version": "0.0.0",
   "description": "Hierarchical permissions for TypeScript.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VeguiDev/VeguiPerms.git",
+    "directory": "packages/vperms"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
