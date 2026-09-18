@@ -39,7 +39,9 @@ packages/vperms            Public API and service (`vperms` package)
 packages/client            Framework-independent resolved-permission client (@vperms/client)
 packages/react             React and React Server Component integration (@vperms/react)
 packages/express           Express middleware integration (@vperms/express)
+packages/hono              Hono middleware integration (@vperms/hono)
 packages/nest              NestJS integration (@vperms/nest)
+packages/next              Next.js integration (@vperms/next)
 packages/sql-adapter       Dialect-agnostic SQL base adapter (@vperms/sql-adapter)
 packages/drizzle-adapter   SQLite/MySQL/Postgres adapters via Drizzle (@vperms/drizzle-adapter)
 packages/mongodb-adapter   MongoDB adapter (@vperms/mongodb-adapter)
@@ -240,6 +242,36 @@ app.get("/admin", hasAnyPermission("admin.*", "staff"), adminHandler);
 subject). `hasPermission` requires every permission and `hasAnyPermission` at
 least one, both short-circuiting.
 
+### Hono
+
+```ts
+import { Hono } from "hono";
+import {
+  hasAnyPermission,
+  hasPermission,
+  type VPermsVariables,
+  vpermsMiddleware,
+} from "@vperms/hono";
+
+const app = new Hono<{ Variables: VPermsVariables }>();
+
+app.use(
+  vpermsMiddleware({
+    adapter,
+    workspace: "workspace",
+    resolver: async (c) => c.get("user")?.id ?? null,
+    permissionsExport: { path: "/subject/:subjectId" },
+  }),
+);
+
+app.get("/posts", hasPermission("posts.read"), postsHandler);
+app.get("/admin", hasAnyPermission("admin.*", "staff"), adminHandler);
+```
+
+The middleware exposes `c.get("ability")` (async `can()`), `c.get("subject")`
+and `c.get("kind")`. Export `VPermsVariables` so downstream handlers keep the
+middleware-aware typing.
+
 ### NestJS
 
 ```ts
@@ -274,6 +306,65 @@ getMe(
 `@Ability()`, `@Subject()` and `@Kind()` only read already-hydrated state.
 Extend `AbilityGuard` for custom guards that reuse the same ability without
 resolving the principal again.
+
+### Next.js
+
+`@vperms/next` orchestrates Server Components, Route Handlers and browser
+hydration on top of `@vperms/client` and `@vperms/react`. The backend decides
+whether VeguiPerms runs inside the Next app or behind an external API.
+
+```ts
+import { createNextVPerms, nextBackend } from "@vperms/next/server";
+
+export const vperms = createNextVPerms({
+  backend: nextBackend({
+    adapter,
+    workspace: "workspace",
+    subjectResolver: () => currentUser,
+  }),
+  permissionsExport: { path: "/subject/:subjectId" },
+});
+```
+
+With `nextBackend`, Server Components resolve directly through the adapter and
+never call the Next app over HTTP. Expose the API with a catch-all Route
+Handler:
+
+```ts
+export const { GET } = vperms.handlers;
+```
+
+Server Components read the request-cached ability:
+
+```tsx
+const ability = await vperms.getAbility();
+
+return (
+  <vperms.Ability permission="admin.read">
+    <AdminPage />
+  </vperms.Ability>
+);
+```
+
+and hydrate the exact same snapshot into Client Components:
+
+```tsx
+export default async function Layout({ children }) {
+  return <vperms.Provider>{children}</vperms.Provider>;
+}
+```
+
+```tsx
+"use client";
+
+const ability = vperms.useAbility();
+```
+
+Pass the serializable `vperms.browserConfig` to the client entry
+(`@vperms/next/client`) to recreate the browser instance. To load permissions
+from an external service instead, use `externalBackend({ origin, prefix })`; the
+browser then talks to the external API directly (`client: "direct"`) or through
+a same-origin proxy that forwards credentials (`client: "proxy"`, the default).
 
 ## Client and React
 
