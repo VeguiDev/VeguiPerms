@@ -47,6 +47,8 @@ packages/drizzle-adapter   SQLite/MySQL/Postgres adapters via Drizzle (@vperms/d
 packages/mongodb-adapter   MongoDB adapter (@vperms/mongodb-adapter)
 packages/adapter-contract  Private shared contract test suite
 examples/basic             Minimal usage example
+scripts/publish.mjs        Release orchestrator (ephemeral versions + npm publish)
+.github/workflows          CI and publish workflows
 ```
 
 ## Requirements
@@ -581,6 +583,40 @@ Integration tests are skipped unless `RUN_INTEGRATION=1` is set (which the
 Caching and advanced policy conditions are planned. The current milestone is
 the in-memory reference adapter, the service pipeline, and the first database
 adapters.
+
+## Releasing
+
+Publishing is automated. Every push to `master` runs the `publish` workflow
+(`.github/workflows/publish.yml`), which validates the repository (frozen
+install, build, typecheck, lint, tests), computes an ephemeral version for each
+public package and publishes all of them to npm.
+
+The version is the package's `major.minor` plus `GITHUB_RUN_NUMBER` as the
+patch, so run `46` publishes `vperms@0.0.46`. Versions are computed at publish
+time and are never committed back to the repository. Pull requests and other
+branches run the `ci` workflow instead.
+
+To preview or run it locally:
+
+```bash
+bun run release:publish:dry   # print what would be published
+bun run release:publish       # requires an authenticated npm session
+```
+
+### One-time npm setup
+
+Publishing uses npm Trusted Publishing (OIDC), so no npm token is stored in the
+repository. Before the first automated run:
+
+1. Publish each public package once manually at `0.0.0` (`npm login`, then
+   `npm publish --access public` inside each package).
+2. On npmjs.com, open each package's **Settings → Trusted Publisher** and add a
+   GitHub Actions publisher: organization `VeguiDev`, repository `VeguiPerms`,
+   workflow `publish.yml`, environment left blank.
+3. Optionally restrict classic token access and require 2FA for the account.
+
+The workflow requests `id-token: write`, which lets `npm publish` exchange the
+GitHub OIDC token for a short-lived npm credential and attach provenance.
 
 ## License
 
