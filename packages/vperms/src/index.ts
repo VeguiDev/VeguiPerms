@@ -38,6 +38,7 @@ export {
   type RequestContext,
   type RequestContextInput,
   resolveRequestContext,
+  resolveSubjectId,
 } from "./runtime";
 export type {
   ValidatedDefaultParents,
