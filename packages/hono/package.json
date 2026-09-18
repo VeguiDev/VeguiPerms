@@ -1,0 +1,35 @@
+{
+  "name": "@vperms/hono",
+  "version": "0.0.0",
+  "description": "Hono integration for VeguiPerms.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun run build:js && bun run build:dts",
+    "build:js": "bun build src/index.ts --outdir dist --format esm --target node --packages external",
+    "build:dts": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test tests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "vperms": "workspace:*"
+  },
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "hono": "^4.13.8"
+  }
+}
