@@ -53,6 +53,7 @@ export function nextVersion(baseVersion, runNumber) {
  */
 export function rewriteWorkspaceDeps(manifest, version) {
   const rewritten = structuredClone(manifest);
+  rewritten.version = version;
 
   for (const field of DEPENDENCY_FIELDS) {
     const deps = rewritten[field];

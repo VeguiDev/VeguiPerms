@@ -26,6 +26,15 @@ describe("nextVersion", () => {
 });
 
 describe("rewriteWorkspaceDeps", () => {
+  test("sets the ephemeral version", () => {
+    const rewritten = rewriteWorkspaceDeps(
+      { name: "@vperms/core", version: "0.0.0" },
+      "0.0.46",
+    );
+
+    expect(rewritten.version).toBe("0.0.46");
+  });
+
   test("pins public workspace deps and drops private ones", () => {
     const manifest = {
       name: "@vperms/nest",
