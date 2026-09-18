@@ -159,5 +159,6 @@ export {
   PermissionAbility,
   VPermsHttpError,
 } from "@vperms/client";
-export type { AbilityProps } from "../shared";
+export type { AbilityCheck, AbilityProps } from "../shared";
+export { abilityAllows } from "../shared";
 export { ServerAbility as Ability };

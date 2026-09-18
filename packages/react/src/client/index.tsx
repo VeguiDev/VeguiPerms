@@ -61,7 +61,8 @@ export {
   PermissionAbility,
   VPermsHttpError,
 } from "@vperms/client";
-export type { AbilityProps } from "../shared";
+export type { AbilityCheck, AbilityProps } from "../shared";
+export { abilityAllows } from "../shared";
 export type { AbilityProviderProps } from "./provider";
 export { MISSING_PROVIDER_MESSAGE } from "./use-ability";
 export {

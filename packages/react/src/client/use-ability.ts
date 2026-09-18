@@ -1,7 +1,7 @@
 "use client";
 
 import type { PermissionAbility } from "@vperms/client";
-import { useContext } from "react";
+import * as React from "react";
 import { getAbilityContext } from "./context";
 
 export const MISSING_PROVIDER_MESSAGE =
@@ -13,7 +13,7 @@ export const MISSING_PROVIDER_MESSAGE =
  * Server Components must use `await vperms.getAbility()` instead.
  */
 export function useAbility(): PermissionAbility {
-  const ability = useContext(getAbilityContext());
+  const ability = React.useContext(getAbilityContext());
 
   if (ability === null) {
     throw new Error(MISSING_PROVIDER_MESSAGE);
